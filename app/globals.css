@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Khmer OS Battambang", "Battambang", "Khmer OS System", "Khmer OS", "Noto Sans Khmer", "Be Vietnam Pro", sans-serif;
+  --font-khmer: "Khmer OS Battambang", "Battambang", "Khmer OS System", "Khmer OS", "Noto Sans Khmer", sans-serif;
+  --color-canvas: #f6f8fa;
+  --color-ink: #172a39;
+  --color-muted: #74838f;
+  --color-line: #e8edf0;
+  --color-brand: #168269;
+}
