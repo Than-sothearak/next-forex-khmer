@@ -85,7 +85,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ status: result.status }, { status, headers });
     }
     return NextResponse.json({ ...result, status: 200 }, { headers });
-  } catch {
+  } catch (error) {
+    console.error("[calendar-explain-api] POST failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : String(error),
+      mongodbConfigured: Boolean(process.env.MONGODB_URI),
+      openaiConfigured: Boolean(process.env.OPENAI_API_KEY),
+    });
     return NextResponse.json(
       { error: "INSIGHT_UNAVAILABLE" },
       { status: 503, headers },

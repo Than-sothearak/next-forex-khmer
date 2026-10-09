@@ -17,7 +17,12 @@ export async function GET(request: NextRequest) {
       .select('title slug summary body titleEn summaryEn bodyEn source sourceUrl category impact marketImpactKm publishedAt')
       .sort({ publishedAt: -1 }).limit(limit).lean();
     return NextResponse.json(items, { headers: { 'Cache-Control': 'no-store' } });
-  } catch {
+  } catch (error) {
+    console.error('[news-api] GET failed', {
+      name: error instanceof Error ? error.name : 'UnknownError',
+      message: error instanceof Error ? error.message : String(error),
+      mongodbConfigured: Boolean(process.env.MONGODB_URI),
+    });
     return NextResponse.json({ error: 'Could not load news' }, { status: 503 });
   }
 }

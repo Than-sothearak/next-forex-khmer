@@ -70,7 +70,13 @@ export async function POST(request: NextRequest) {
       },
       { headers },
     );
-  } catch {
+  } catch (error) {
+    console.error("[calendar-translate-api] POST failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : String(error),
+      mongodbConfigured: Boolean(process.env.MONGODB_URI),
+      openaiConfigured: Boolean(process.env.OPENAI_API_KEY),
+    });
     return NextResponse.json(
       { error: "TRANSLATION_UNAVAILABLE" },
       { status: 503, headers },

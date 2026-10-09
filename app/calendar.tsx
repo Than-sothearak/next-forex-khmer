@@ -179,7 +179,13 @@ export default function Calendar({ initialDate }: { initialDate: string }) {
                 : current,
             );
           })
-          .catch(() => {
+          .catch((error) => {
+            if (!translationController.signal.aborted) {
+              console.error("[calendar-ui] translation request failed", {
+                url: `/api/calendar/translate?${new URLSearchParams(range)}`,
+                error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+              });
+            }
             if (
               !translationController.signal.aborted &&
               translationRange.current === rangeKey
@@ -193,7 +199,13 @@ export default function Calendar({ initialDate }: { initialDate: string }) {
             }
           });
       }
-    } catch {
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        console.error("[calendar-ui] calendar request failed", {
+          url: `/api/calendar?${new URLSearchParams(range)}`,
+          error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+        });
+      }
       if (active.current === controller)
         setError(
           "មិនអាចទាញយកប្រតិទិនបានទេ។ សូមពិនិត្យការតភ្ជាប់ ហើយព្យាយាមម្តងទៀត។",
@@ -338,7 +350,12 @@ export default function Calendar({ initialDate }: { initialDate: string }) {
           [event.providerId]: { status: "ready", ...result.insight },
         }));
       }
-    } catch {
+    } catch (error) {
+      console.error("[calendar-ui] event explanation request failed", {
+        url: "/api/calendar/explain",
+        providerId: event.providerId,
+        error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+      });
       setInsights((previous) => ({
         ...previous,
         [event.providerId]: {

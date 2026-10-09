@@ -131,7 +131,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ events, meta } satisfies CalendarResponse, {
       headers,
     });
-  } catch {
+  } catch (error) {
+    console.error("[calendar-api] GET failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : String(error),
+      mongodbConfigured: Boolean(process.env.MONGODB_URI),
+      apifyConfigured: Boolean(process.env.APIFY_API_TOKEN),
+    });
     return NextResponse.json(
       { error: "CALENDAR_UNAVAILABLE" },
       { status: 503, headers },
