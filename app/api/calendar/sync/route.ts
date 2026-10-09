@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { syncCalendar } from "@/lib/calendar/sync";
-import { ProviderError } from "@/lib/calendar/providers/trading-economics-data";
+import { ProviderError } from "@/lib/calendar/providers/provider-utils";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 240;
@@ -17,12 +17,23 @@ export async function POST(request: NextRequest) {
   ) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
+  console.info("[calendar-sync] request accepted");
   try {
-    return NextResponse.json(await syncCalendar(), {
+    const result = await syncCalendar();
+    console.info("[calendar-sync] request finished", {
+      status: result.status,
+      events: "events" in result ? result.events : undefined,
+    });
+    return NextResponse.json(result, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
     const code = error instanceof ProviderError ? error.code : "SYNC_FAILED";
+    console.error("[calendar-sync] request failed", {
+      code,
+      retryAfterSeconds:
+        error instanceof ProviderError ? error.retryAfterSeconds : undefined,
+    });
     return NextResponse.json(
       { error: code },
       {

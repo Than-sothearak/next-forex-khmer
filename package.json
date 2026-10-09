@@ -15,6 +15,7 @@
   "dependencies": {
     "@fontsource/be-vietnam-pro": "^5.3.0",
     "@fontsource/noto-sans-khmer": "^5.3.0",
+    "country-flag-icons": "^1.6.20",
     "mongodb": "^6.10.0",
     "mongoose": "^8.8.0",
     "next": "^15.0.0",

@@ -91,10 +91,10 @@ export async function GET(request: NextRequest) {
       Date.now() - state.lastSuccess.getTime() >
         config.syncIntervalMinutes * 120_000 ||
       !!state.lastError;
-    meta.warning = !state?.lastSuccess
-      ? "AWAITING_SYNC"
-      : state.lastError
-        ? "PROVIDER_ERROR"
+    meta.warning = state?.lastError
+      ? "PROVIDER_ERROR"
+      : !state?.lastSuccess
+        ? "AWAITING_SYNC"
         : !state.coverageFrom ||
             !state.coverageTo ||
             query.from < state.coverageFrom ||

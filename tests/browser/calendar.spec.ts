@@ -144,11 +144,11 @@ test("visible calendar automatically checks the cache after 60 seconds", async (
   expect((await response).status()).toBe(200);
 });
 
-test("historical shortcuts update dates and request the selected range", async ({ page }) => {
+test("date shortcuts update dates and request the selected range", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByTestId("event-row")).toHaveCount(6);
   const today = await page.getByLabel("ចាប់ពីថ្ងៃ", { exact: true }).inputValue();
-  for (const preset of calendarPresets(today).filter(item => ['yesterday', 'last-week', 'last-month'].includes(item.id))) {
+  for (const preset of calendarPresets(today)) {
     const response = page.waitForResponse(response => {
       const url = new URL(response.url());
       return url.pathname === '/api/calendar' && url.searchParams.get('from') === preset.from && url.searchParams.get('to') === preset.to;

@@ -16,47 +16,20 @@ Open http://localhost:3000. The default **demo mode works without a database or 
 
 The interface includes Cambodia-time date ranges, currency/country/impact filters, highlighted high-impact rows, English-name visibility, expandable descriptions, loading/empty/error states, and manual refresh. Opening a provider-backed event on demand asks OpenAI in Khmer for a plain-language explanation of what the release measures, how it could affect gold (XAU/USD), and how to read its Actual, Forecast and Previous values. The explanation is cached in MongoDB for the exact event revision; changing the event's title or values creates a new cache entry. It uses conditional language and is not trading advice. Demo rows do not trigger AI requests. Narrow screens can swipe the calendar horizontally to see every value. Khmer country labels cover the main Forex economies; other country names retain the provider's text.
 
-## Data-source decision and licensing
+## Calendar source
 
-Research checked on **9 October 2026**:
-
-- Forex Factory's [Terms of Service](https://www.forexfactory.com/notices) require permission to use content unless otherwise permitted by law. We could not verify an official API/feed granting redistribution rights. Availability of an export URL or a third-party “Forex Factory API” does not establish permission. This project does not fetch, scrape, or copy its calendar.
-- [Trading Economics API pricing](https://tradingeconomics.com/api/pricing.aspx) describes public website display/white-label use and data redistribution under its Enterprise offering. The implemented adapter is intended for an appropriately licensed contract. An API key or standard subscription alone is **not** treated as redistribution permission.
-- Obtain a contract covering your public website, API delivery to its visitors, attribution, MongoDB retention/caching, and sending event text to OpenAI for translation. Confirm any geographic, delay, attribution or retention conditions with the provider. Configure your deployment to meet your particular contract before enabling provider mode. The code cannot purchase or verify a license.
-- The requested [Apify Actor](https://apify.com/gochujang/economic-calendar-tracker) is a third-party economic-calendar collector using Forex Factory / FXStreet. The user reports permission for the selected Forex Factory source; local configuration enables it. The app cannot independently verify the license scope. The Actor supplies calendar events, not news articles.
-
-Trading Economics provider mode requires **all three**:
-
-```dotenv
-ECONOMIC_CALENDAR_PROVIDER=trading-economics
-TRADING_ECONOMICS_API_KEY=your-provider-credentials
-CALENDAR_REDISTRIBUTION_LICENSE_CONFIRMED=true
-```
-
-Otherwise the public endpoint explicitly returns demo mode and sync refuses to fetch. If these are set but MongoDB/provider access fails, the app reports an error or stale cached data; it does not substitute invented live events. This polling implementation makes no “real-time” claim.
-
-Provider documentation:
-
-- [Date-range endpoint](https://docs.tradingeconomics.com/economic_calendar/country/)
-- [Response schema: UTC timestamps, DateSpan, values, importance](https://docs.tradingeconomics.com/economic_calendar/schema/)
-- [Rate limits: calendar requests capped at 1,000 rows](https://docs.tradingeconomics.com/get_started/rate-limits/)
-
+Live calendar data comes from the [Xtracto Forex Factory Actor](https://apify.com/xtracto/forexfactory-calendar). The Actor is started only by the protected sync route. Keep the Apify token in server-side environment variables and follow the permission and terms that apply to your account.
 ## Environment variables
 
 All variables below are **server-only**. Do not use `NEXT_PUBLIC_` for secrets.
 
 | Variable | Purpose |
 | --- | --- |
-| `ECONOMIC_CALENDAR_PROVIDER` | `demo` (default), `trading-economics`, or `apify` |
 | `MONGODB_URI` | MongoDB connection string, required for provider mode and sync |
-| `TRADING_ECONOMICS_API_KEY` | Provider credentials in the format supplied by Trading Economics |
-| `CALENDAR_REDISTRIBUTION_LICENSE_CONFIRMED` | Must equal `true` after the appropriate license is obtained |
 | `CALENDAR_SYNC_SECRET` | Random secret of at least 32 characters, used only by server-side scheduling |
-| `CALENDAR_SYNC_INTERVAL_MINUTES` | Minimum successful sync interval: defaults to `60` for Apify, `15` for Trading Economics; bounded to 5–1440 minutes |
+| `CALENDAR_SYNC_INTERVAL_MINUTES` | Background sync interval; defaults to 60 minutes and is bounded to 5–1440 minutes |
 | `APIFY_API_TOKEN` | Server-only Apify token, required for the Apify adapter |
-| `APIFY_CALENDAR_SOURCE` | Explicit `forexfactory` or `fxstreet`; blank/`both` is disabled |
-| `APIFY_FOREXFACTORY_PERMISSION_CONFIRMED` | Confirm Forex Factory public redistribution, caching and translation rights only after obtaining them |
-| `APIFY_FXSTREET_PERMISSION_CONFIRMED` | Separate confirmation for FXStreet rights |
+| `APIFY_CALENDAR_SOURCE` | Actor source; currently `xtracto/forexfactory-calendar` |
 | `OPENAI_API_KEY` | Enables Khmer translations for calendar events and news |
 | `OPENAI_MODEL` | Structured-output-capable model, default `gpt-4o-mini` |
 | `ADMIN_API_KEY` | Protects the server-side news publishing endpoint |
@@ -67,6 +40,10 @@ Generate a sync secret with `openssl rand -hex 32`. For local MongoDB use `mongo
 
 Run the app on a host supporting Node.js API routes and at least a 240-second request duration for synchronization. A Next.js deployment does not create an external scheduler automatically.
 
+For local development or a continuously running Node server, set `CALENDAR_AUTO_SYNC=true` and `CALENDAR_SYNC_INTERVAL_MINUTES=5`, then restart `npm run dev` or `npm start`. After each successful sync, the server schedules the next request at the earlier of the background interval or 15 seconds after a known, non-tentative event release with a missing Actual. Simultaneous releases share a request; pending results continue to be checked at the background interval. Slow requests and translation can delay this timing. Release requests can increase Actor costs and cannot guarantee that the upstream source has published Actual values. The database lease prevents concurrent requests and preserves provider retry delays across processes. Existing cooldowns remain until the next successful sync. The browser automatically reads updated data every 60 seconds. No manual button or open browser is required for provider fetching while the server is running. Successful runs are logged as `[calendar-auto-sync] completed`, and `[calendar-sync] next request scheduled` shows the next request time and reason. External cron jobs only execute at their configured frequency. This uses the Next.js instrumentation startup hook: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation.
+
+Background timers stop when the server stops or sleeps. For serverless hosting, use the external scheduler below; the built-in timer is disabled on Vercel. Changing the interval does not override an existing persisted retry/cooldown deadline.
+
 After configuration, trigger the initial sync from a trusted shell (set the secret in that shell; `.env.local` is read by Next.js, not curl):
 
 ```sh
@@ -74,18 +51,17 @@ curl --fail-with-body -X POST http://localhost:3000/api/calendar/sync \
   -H "Authorization: Bearer $CALENDAR_SYNC_SECRET"
 ```
 
-Configure your hosting scheduler or a cron job to POST to `/api/calendar/sync`. For example, check every minute; the server's MongoDB-backed interval guard limits provider fetches to approximately every 15–16 minutes by default:
+Configure your hosting scheduler or a cron job to POST to `/api/calendar/sync`. For example, check every minute; the server MongoDB-backed interval guard limits provider fetches to approximately once per hour by default:
 
 ```cron
 * * * * * /usr/bin/curl --fail --silent --show-error --max-time 240 -X POST https://YOUR_DOMAIN/api/calendar/sync -H "Authorization: Bearer $CALENDAR_SYNC_SECRET"
 ```
 
-Supply the secret through your scheduler's protected environment. A normal user's crontab does not inherit shell startup variables. Choose an interval and subscription quota suitable for your license. At the 15-minute setting, budget approximately 3,000 calendar requests per month, plus initial/testing calls. No guest/browser action bypasses the sync guard.
+Supply the secret through your scheduler's protected environment. A normal user's crontab does not inherit shell startup variables. Choose an interval and subscription quota suitable for your license. At the 60-minute default, expect about 720 calendar requests per month, plus initial/testing calls. No guest/browser action bypasses the sync guard.
 
 - Each sync targets **yesterday through seven days ahead**, interpreted as Cambodia dates and stored in UTC. Requests outside the latest covered window show an explicit coverage warning; cached older events may still appear.
-- The Trading Economics adapter uses the provider's all-country date-range endpoint, validates the entire response, normalizes numeric/string values without changing units, handles tentative times, and refuses responses at the documented 1,000-row ceiling to avoid silently incomplete data. Larger deployments should implement smaller windows or pagination in the adapter according to provider documentation.
-- A unique `(provider, providerId)` index and upserts prevent duplicates and apply revisions. Successful responses reconcile cancellations within the fetched window. Existing starter records in the old `economicevents` collection are left untouched; licensed events use the new `calendarevents` collection.
-- A five-minute MongoDB lease prevents concurrent scheduled jobs across application instances. Trading Economics requests time out after 25 seconds; Apify runs have a 120-second execution limit and a 130-second HTTP deadline. HTTP 429 `Retry-After` values persist as backoff in MongoDB; errors preserve previously cached data and mark it stale. Other failures back off at least five minutes or the configured interval.
+- A unique `(provider, providerId)` index and upserts prevent duplicates and apply revisions. Successful responses reconcile current and future cancellations while retaining the past event archive. Existing starter records in the old `economicevents` collection are left untouched; licensed events use the new `calendarevents` collection.
+- A five-minute MongoDB lease prevents concurrent scheduled jobs across application instances. Apify runs have a 120-second execution limit and a 130-second HTTP deadline. HTTP 429 `Retry-After` values persist as backoff in MongoDB; errors preserve previously cached data and mark it stale. Other failures back off at least five minutes or the configured interval.
 - Browsers poll the event cache every 60 seconds while visible and refresh on returning to the tab. If a displayed event name or provider-supplied description has no Khmer cache entry, the page separately requests one server-side translation batch; this does not start an upstream calendar run. A MongoDB lease and retry delay prevent repeated OpenAI calls across visitors. Source sync time and browser check time are separate. Data becomes stale after twice the configured interval or a recorded sync failure.
 - UTC timestamps are rendered with `Asia/Phnom_Penh` (UTC+7). Date filters use inclusive Cambodia calendar dates, implemented as a half-open UTC range. Maximum range: 31 days.
 
@@ -105,18 +81,22 @@ The homepage has a responsive news section that reads published items from `GET 
 
 No news provider/feed is configured by this project, and no news stories are fabricated. Supply only articles from a provider whose terms permit public redistribution, database storage, and sending the text to OpenAI. The publish endpoint accepts `title`/`summary`/`body` or their `titleEn`/`summaryEn`/`bodyEn` equivalents, plus optional `slug`, `source`, `sourceUrl`, `category`, `impact`, `publishedAt`, and `status`. It requires a valid `ADMIN_API_KEY` and OpenAI key; failed AI generation returns an error without publishing a half-translated article. The explanation uses conditional language and is informational, not trading advice.
 
-## API and implementation
+## Code structure and request flow
 
-- `GET /api/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD&currency=USD&country=United%20States&impact=high` — public, returns `{ events, meta }`. Filters are optional. Invalid parameters: 400; database unavailable in provider mode: 503. Provider failures with cache available are exposed through `meta.warning` and `meta.stale`. `meta.lastUpdated` is the last successful provider fetch, never the browser fetch time.
-- `POST /api/calendar/sync` — protected bearer token; returns `synced` or `skipped`. Unauthorized: 401; missing setup or sync failure: 503; upstream rate limit: 429 with `Retry-After`. GET is not enabled for this write operation.
-- `POST /api/calendar/translate?from=YYYY-MM-DD&to=YYYY-MM-DD` — translates up to 30 uncached event names/descriptions for the selected cached range, then returns cached Khmer text. It accepts only provider data already stored in MongoDB and uses the same bounded translation cache/lease.
-- `POST /api/calendar/explain` with `{ "providerId": "..." }` — returns a cached or newly generated Khmer explanation for one provider event, including the Actual/Forecast/Previous comparison when available. The server reads values from MongoDB; it never trusts event values supplied by the browser. Requires provider mode and `OPENAI_API_KEY`.
-- `lib/calendar-provider.ts` — server-only provider interface, selection and Trading Economics adapter. Add a new implementation, normalize to `lib/calendar/types.ts`, update configuration and license checks, and keep the public response shape unchanged.
-- `models/` — events, text translations, and sync metadata/lease.
-- `app/calendar.tsx` — accessible public client interface, no accounts or login routes.
+- `app/` contains the page, calendar/news UI and Next.js API routes.
+- `lib/calendar/` contains date handling, demo events, Apify configuration, event normalization, MongoDB sync, translations and event explanations.
+- `lib/calendar/providers/` contains the Xtracto Apify request and shared provider error/date helpers.
+- `models/` defines MongoDB collections for calendar events, sync state, translations, news and explanations.
 
-The news endpoint now feeds the homepage; reading published news is public, while publishing requires `ADMIN_API_KEY`. The standalone translation endpoint remains admin-only. Telegram routes are not called by the interface; `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are only for those legacy routes.
+Calendar flow:
 
+1. The browser loads `/api/calendar`. The route validates Cambodia date filters, reads matching cached MongoDB events, and returns demo events when provider setup is missing.
+2. `instrumentation.ts` starts the optional background loop when `CALENDAR_AUTO_SYNC=true`. A hosting scheduler can call the same protected `POST /api/calendar/sync` route.
+3. `lib/calendar/sync.ts` checks configuration, acquires a MongoDB lease, and calls the Xtracto provider in `lib/calendar/providers/apify.ts`.
+4. The provider sends the Actor request. `apify-data.ts` validates and normalizes its rows. Sync upserts new events, removes cancelled current/future events, and keeps the previous cache if the Actor request fails.
+5. Sync translates missing event text and stores the next attempt time. The browser polls the cached calendar; it does not start an Actor run.
+
+Other routes handle on-demand calendar translation and explanations, and public news reading plus protected news publishing.
 ## Checks
 
 ```sh
@@ -152,33 +132,29 @@ An appropriately licensed provider contract and working key; a persistent MongoD
 
 The interface uses Tailwind CSS utility classes in `app/calendar.tsx` and `app/layout.tsx`. `app/globals.css` only imports Tailwind and declares theme tokens (colors and the locally bundled Khmer/Latin font stack); it contains no custom component selectors. `postcss.config.mjs` configures the Tailwind PostCSS plugin. Responsive variants, focus states and motion-reduction variants are kept with the components.
 
-## Prepared Apify integration (disabled until permission is obtained)
+## Apify integration
 
-The selectable server-only adapter targets exactly `gochujang/economic-calendar-tracker`. It uses Apify's documented [synchronous Actor endpoint](https://docs.apify.com/api/v2/actor-run-sync-get-dataset-items-post), sends the token in a bearer header, and runs only through the protected sync route. Public browsing/refresh never starts a paid Actor run.
+The calendar uses the xtracto/forexfactory-calendar Actor through Apify synchronous run and dataset-items endpoint. It sends the token in a bearer header and starts runs only through the protected sync route. Public browsing never starts an Actor run.
 
-Keep `ECONOMIC_CALENDAR_PROVIDER=demo` and both permission flags `false` for now. After securing permission for the chosen upstream source, configure **`.env.local` or hosting secrets**, not `.env.example`:
+Configure **`.env.local` or hosting secrets**, not `.env.example`:
 
 ```dotenv
-ECONOMIC_CALENDAR_PROVIDER=apify
 APIFY_API_TOKEN=your-private-apify-token
-APIFY_CALENDAR_SOURCE=fxstreet
-# Set to true ONLY after securing the required FXStreet rights:
-APIFY_FXSTREET_PERMISSION_CONFIRMED=false
-APIFY_FOREXFACTORY_PERMISSION_CONFIRMED=false
+APIFY_CALENDAR_SOURCE=xtracto/forexfactory-calendar
 CALENDAR_SYNC_INTERVAL_MINUTES=60
 MONGODB_URI=your-mongodb-connection
 CALENDAR_SYNC_SECRET=your-random-secret-at-least-32-characters
 ```
 
-For Forex Factory, select `forexfactory` and confirm only its corresponding permission flag after obtaining permission. Source-specific cache keys prevent switching upstreams from exposing the other source's cached events. `both` is intentionally unsupported; each run uses one explicitly authorized source. Missing token, source selection or permission keeps public demo mode and rejects sync without calling Apify.
+The app uses this Actor as its only live calendar source. Missing credentials keep public demo mode and reject sync without calling Apify.
 
-Once configured and authorized, use the existing protected `POST /api/calendar/sync` and scheduler instructions above. Apify defaults to an hourly interval because each run can incur Actor/platform charges. Review the Actor's current pricing before scheduling: the limit of 500 events is a result bound, **not a guaranteed dollar spending cap**. Failed or timed-out runs can still incur charges. Requests are not immediately retried; normal persisted sync backoff applies. Alerts and webhooks are not configured or sent.
+Once configured and authorized, use the existing protected `POST /api/calendar/sync` and scheduler instructions above. Apify defaults to an hourly interval because each run can incur Actor/platform charges. Review the Actor's current pricing before scheduling: the request asks for at most 100 events, **not a guaranteed dollar spending cap**. Failed or timed-out runs can still incur charges. Requests are not immediately retried; normal persisted sync backoff applies. Alerts and webhooks are not configured or sent.
 
-The adapter requests a padded date window, then applies the exact UTC interval corresponding to the selected Cambodia dates. It normalizes `title`, `country`, `date_iso`, impact and available actual/forecast/previous values; descriptions remain absent unless supplied. Offsets are required on timestamps. It excludes holidays rather than assigning them an invented impact level. The Actor's series-level canonical ID is combined with source, country and release timestamp so recurring releases remain distinct while value revisions update the same occurrence. Rescheduling is reconciled by the existing fetched-window cleanup.
+The adapter sends a dynamic range with USD, EUR and AUD currencies, low minimum impact and at most 100 items. It maps the Actor event, currency, country, timestamp, impact and Actual/Forecast/Previous fields. Provider timestamps are converted to UTC, then events are limited to the sync interval. Rescheduling is reconciled by the existing fetched-window cleanup.
 
-Only event records enter the calendar. A tagged `type: "week_outlook"` summary is ignored. Unexpected schemas, other sources, conflicting duplicate events and results reaching 500 events fail validation. Empty/summary-only responses also fail conservatively, retaining the cache because an upstream outage cannot be distinguished from an empty feed. A validated nonempty feed with no events inside the target UTC window may still legitimately produce an empty calendar. There is no invented upstream last-update timestamp and no real-time claim.
+Only event records enter the calendar. A tagged `type: "week_outlook"` summary is ignored. Unexpected schemas, other sources, conflicting duplicate events fail validation. Empty/summary-only responses also fail conservatively, retaining the cache because an upstream outage cannot be distinguished from an empty feed. A validated nonempty feed with no events inside the target UTC window may still legitimately produce an empty calendar. There is no invented upstream last-update timestamp and no real-time claim.
 
-The adapter has been checked with authored fixtures and mocked Apify HTTP responses. An authorized live sync completed on 9 October 2026 and cached 34 events for its Cambodia-time window. The current Actor output uses `_record_type` for its weekly outlook row and may omit `data_source`; the adapter ignores the summary and rejects an explicit source mismatch while relying on the explicit source selected in the Actor request. Verify this behavior again if the Actor changes its output format. OpenAI calendar translations remain independently pending if the configured OpenAI request fails.
+
 
 **Secrets:** `.env.example` is a shareable template and must contain no real keys. Keep keys in the gitignored `.env.local`. A previously exposed OpenAI key was removed from the template and preserved locally; rotate that key in your OpenAI account and replace the local value. It was not used to run Apify or test production translations.
 # next-forex-khmer

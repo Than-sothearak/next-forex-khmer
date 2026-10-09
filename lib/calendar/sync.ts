@@ -1,18 +1,24 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { connectMongo } from "@/lib/mongodb";
-import { getCalendarProvider } from "@/lib/calendar-provider";
 import EconomicEvent from "@/models/EconomicEvent";
 import CalendarSync from "@/models/CalendarSync";
 import Translation from "@/models/Translation";
-import { addDays, cambodiaDate, dayBounds } from "./dates";
+import {
+  addDays,
+  cambodiaDate,
+  dayBounds,
+  formatCambodiaDate,
+} from "./dates";
 import { calendarConfig } from "./config";
-import { ProviderError } from "./providers/trading-economics-data";
+import { ApifyCalendarProvider } from "./providers/apify";
+import { ProviderError } from "./providers/provider-utils";
 import { translateCalendarBatch } from "./translations";
 
 export async function syncCalendar() {
   const config = calendarConfig();
-  const provider = getCalendarProvider();
+  if (!config.enabled) throw new ProviderError("PROVIDER_NOT_CONFIGURED");
+  const provider = new ApifyCalendarProvider();
   await connectMongo();
   await Promise.all([
     EconomicEvent.init(),
@@ -43,12 +49,15 @@ export async function syncCalendar() {
     },
     { new: true },
   ).lean();
-  if (!lease)
+  if (!lease) {
+    const current = await CalendarSync.findById(provider.id).lean();
     return {
       status: "skipped",
+      nextAttemptAt: current?.nextAttemptAt?.toISOString(),
       reason:
         "A sync is running or the refresh/backoff interval has not elapsed.",
     };
+  }
   const today = cambodiaDate();
   const range = dayBounds(addDays(today, -1), addDays(today, 7));
   try {
@@ -76,10 +85,12 @@ export async function syncCalendar() {
           }),
         ),
       );
-    // Reconcile cancellations only in the successfully fetched window.
+    // Apify may omit past releases even when the requested window includes them.
+    // Preserve our historical archive; reconcile omissions from today onward.
+    const reconcileFrom = dayBounds(today, today).from;
     await EconomicEvent.deleteMany({
       provider: provider.id,
-      eventAt: { $gte: range.from, $lt: range.to },
+      eventAt: { $gte: reconcileFrom, $lt: range.to },
       providerId: { $nin: events.map((event) => event.providerId) },
     });
     await CalendarSync.updateOne(
@@ -99,14 +110,28 @@ export async function syncCalendar() {
       events.flatMap((event) => [event.titleEn, event.descriptionEn || ""]),
     );
     const translationPending = translationResult.pending;
+    const completedAt = Date.now();
+    const regularAttemptAt = completedAt + config.syncIntervalMinutes * 60_000;
+    // Schedule from the request start: a release during a slow Actor run may
+    // still be absent from that run's snapshot. Group simultaneous releases.
+    const releaseAttempts = events
+      .filter(event => !event.timeTentative && event.actual === null)
+      .map(event => new Date(event.eventAt).getTime() + 15_000)
+      .filter(at => Number.isFinite(at) && at > now.getTime());
+    const nextAttemptAt = new Date(Math.max(
+      completedAt + 15_000,
+      Math.min(regularAttemptAt, ...releaseAttempts),
+    ));
+    console.info('[calendar-sync] next request scheduled', {
+      nextAttemptAt: formatCambodiaDate(nextAttemptAt),
+      reason: nextAttemptAt.getTime() < regularAttemptAt ? 'event-release' : 'regular-interval',
+    });
     await CalendarSync.updateOne(
       { _id: provider.id, lockToken: token },
       {
         $set: {
           translationPending,
-          nextAttemptAt: new Date(
-            Date.now() + config.syncIntervalMinutes * 60_000,
-          ),
+          nextAttemptAt,
           lockUntil: new Date(0),
         },
       },
@@ -116,6 +141,7 @@ export async function syncCalendar() {
       events: events.length,
       lastUpdated: syncedAt.toISOString(),
       translationPending,
+      nextAttemptAt: nextAttemptAt.toISOString(),
     };
   } catch (error) {
     const code = error instanceof ProviderError ? error.code : "SYNC_FAILED";
