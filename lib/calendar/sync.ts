@@ -51,9 +51,15 @@ export async function syncCalendar() {
   ).lean();
   if (!lease) {
     const current = await CalendarSync.findById(provider.id).lean();
+    // A cleared/recreated database can leave a stale lease until its five-minute
+    // expiry. Report the actual retry time instead of the epoch cooldown, which
+    // makes the auto-sync log look like it is permanently stuck in 1970.
+    const retryAt = [current?.nextAttemptAt, current?.lockUntil]
+      .filter((date): date is Date => date instanceof Date && Number.isFinite(date.getTime()))
+      .reduce((latest, date) => Math.max(latest, date.getTime()), 0);
     return {
       status: "skipped",
-      nextAttemptAt: current?.nextAttemptAt?.toISOString(),
+      nextAttemptAt: retryAt ? new Date(retryAt).toISOString() : undefined,
       reason:
         "A sync is running or the refresh/backoff interval has not elapsed.",
     };
