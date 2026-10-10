@@ -3,7 +3,7 @@ import { validDay } from "../dates";
 export class ProviderError extends Error {
   constructor(
     public code: string,
-    public retryAfterSeconds = 300,
+    public retryAfterSeconds = 30,
   ) {
     super(code);
   }
