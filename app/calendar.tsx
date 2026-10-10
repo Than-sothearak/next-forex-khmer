@@ -60,6 +60,7 @@ export default function Calendar({ initialDate }: { initialDate: string }) {
       string,
       {
         status: "loading" | "busy" | "unavailable" | "ready";
+        model?: string | null;
         eventNameKm?: string;
         overviewKm?: string;
         valuesExplanationKm?: string;
