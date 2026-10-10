@@ -15,20 +15,37 @@ export class ApifyCalendarProvider {
   readonly name = "Apify - Forex Factory";
   readonly url = APIFY_ACTOR_URL;
 
-
   async getEvents(from: Date, to: Date) {
-    if (!calendarConfig().enabled)
+    if (!calendarConfig().enabled) {
       throw new ProviderError("PROVIDER_NOT_CONFIGURED");
+    }
 
     const dateFrom = cambodiaDate(from);
     const dateTo = cambodiaDate(new Date(to.getTime() - 1));
+
     const url = new URL(
       `https://api.apify.com/v2/actors/${ACTOR_ID}/run-sync-get-dataset-items`,
     );
+
     url.searchParams.set("timeout", "120");
     url.searchParams.set("format", "json");
 
+    const startedAt = Date.now();
+
+    // Hide the API token if it appears in an error message.
+    const safeMessage = (value: unknown) => {
+      const message = String(value);
+      const token = process.env.APIFY_API_TOKEN;
+
+      return (
+        token
+          ? message.split(token).join("[REDACTED]")
+          : message
+      ).slice(0, 2000);
+    };
+
     let response: Response;
+
     try {
       response = await fetch(url, {
         method: "POST",
@@ -56,26 +73,58 @@ export class ApifyCalendarProvider {
     } catch (error) {
       console.error("[apify-calendar] request failed", {
         name: error instanceof Error ? error.name : "UnknownError",
-        message: error instanceof Error ? error.message : String(error),
+        message: safeMessage(
+          error instanceof Error ? error.message : error,
+        ),
+        elapsedMs: Date.now() - startedAt,
+        cause:
+          error instanceof Error && error.cause instanceof Error
+            ? safeMessage(error.cause.message)
+            : undefined,
       });
+
       throw new ProviderError("PROVIDER_UNAVAILABLE");
     }
 
-    if (response.status === 429)
+    if (!response.ok) {
+      let details: string;
+
+      try {
+        details = safeMessage(await response.text());
+      } catch (error) {
+        details = safeMessage(
+          error instanceof Error ? error.message : error,
+        );
+      }
+
+      console.error("[apify-calendar] HTTP error", {
+        status: response.status,
+        elapsedMs: Date.now() - startedAt,
+        details,
+      });
+    }
+
+    if (response.status === 429) {
       throw new ProviderError(
         "PROVIDER_RATE_LIMIT",
         retryDelay(response.headers.get("retry-after")),
       );
-    if (response.status === 401 || response.status === 403)
+    }
+
+    if (response.status === 401 || response.status === 403) {
       throw new ProviderError("PROVIDER_AUTHORIZATION");
-    if (!response.ok)
+    }
+
+    if (!response.ok) {
       throw new ProviderError(
         response.status === 400 || response.status === 422
           ? "INVALID_PROVIDER_RESPONSE"
           : "PROVIDER_UNAVAILABLE",
       );
+    }
 
     let payload: unknown;
+
     try {
       payload = await response.json();
     } catch {
