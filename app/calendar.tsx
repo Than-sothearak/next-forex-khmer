@@ -391,10 +391,23 @@ export default function Calendar({ initialDate }: { initialDate: string }) {
           className="mx-auto max-w-[1620px] px-[38px] pt-[33px] pb-5 min-[1600px]:pt-[42px] max-[1250px]:px-6 max-[1250px]:pt-7 max-[1250px]:pb-[18px] max-[800px]:pt-[25px] max-[560px]:px-[14px] max-[560px]:pt-[23px] max-[560px]:pb-5"
           id="calendar"
         >
-          <section className="mb-7 flex items-center justify-between gap-[22px] overflow-hidden rounded-[18px] border border-[#dcebe3] bg-linear-[125deg,#eaf5f0,#ffffff_58%,#eef6f4] px-7 py-6 shadow-[0_10px_30px_rgba(31,86,65,.045)] [&_h1]:text-[32px] [&_h1]:font-semibold [&_h1]:leading-[1.7] [&_h1]:tracking-[-.6px] [&_p]:mt-1.5 [&_p]:text-[14px] [&_p]:text-muted min-[1600px]:[&_h1]:text-[36px] max-[800px]:mb-[22px] max-[800px]:px-5 max-[800px]:py-5 max-[800px]:[&_h1]:text-[27px] max-[800px]:[&_p]:text-[14px] max-[560px]:rounded-[14px] max-[560px]:px-4 max-[560px]:py-4 max-[560px]:[&_h1]:text-[24px] max-[560px]:[&_p]:leading-[2]">
-            <div>
-              <div className="mb-[11px] flex items-center gap-2 text-[14px] font-semibold tracking-[1.8px] text-brand  max-[560px]:mb-2 max-[560px]:text-[14px]">
+          <section className="mb-7 flex items-center justify-between gap-[22px] overflow-hidden rounded-[18px] border border-[#dcebe3] bg-linear-[125deg,#eaf5f0,#ffffff_58%,#eef6f4] px-7 py-6 shadow-[0_10px_30px_rgba(31,86,65,.045)] [&_h1]:text-[32px] [&_h1]:font-semibold [&_h1]:leading-[1.7] [&_h1]:tracking-[-.6px] [&_p]:mt-1.5 [&_p]:text-[14px] [&_p]:text-muted min-[1600px]:[&_h1]:text-[36px] max-[800px]:mb-[22px] max-[800px]:flex-row max-[800px]:items-center max-[800px]:gap-3 max-[800px]:px-5 max-[800px]:py-5 max-[800px]:[&_h1]:text-[27px] max-[800px]:[&_p]:text-[14px] max-[560px]:rounded-[14px] max-[560px]:px-4 max-[560px]:py-4 max-[560px]:[&_h1]:text-[18px] max-[560px]:[&_h1]:leading-[1.5] max-[560px]:[&_p]:leading-[1.7]">
+            <div className="max-[800px]:min-w-0 max-[800px]:flex-1">
+              <div className="mb-[11px] flex items-center gap-2 text-[14px] font-semibold tracking-[1.8px] text-brand max-[560px]:mb-1 max-[560px]:gap-1.5 max-[560px]:text-[10px] max-[560px]:tracking-[1px]">
                 <span /> ECONOMIC CALENDAR
+              </div>
+              <div className="mb-2 hidden w-full items-center gap-3 rounded-xl border border-[#dce9e2] bg-white/90 px-4 py-3 shadow-[0_5px_18px_rgba(31,86,65,.05)] max-[800px]:flex max-[560px]:px-3 max-[560px]:py-2.5">
+                <span className="shrink-0 text-brand">
+                  <Icon name="calendar" size={23} />
+                </span>
+                <div>
+                  <small className="block text-[14px] text-muted max-[560px]:text-[12px]">
+                    ម៉ោងកម្ពុជា
+                  </small>
+                  <b className="text-[14px] font-medium text-[#183b35] max-[560px]:text-[16px]">
+                    {dateLabel(initialDate)}
+                  </b>
+                </div>
               </div>
               <h1>ប្រតិទិនសេដ្ឋកិច្ច Forex</h1>
               <p>
@@ -439,34 +452,48 @@ export default function Calendar({ initialDate }: { initialDate: string }) {
             className="mb-[26px] grid grid-cols-3 gap-[18px] max-[800px]:gap-2.5 max-[560px]:mb-5 max-[560px]:gap-2"
             aria-label="សង្ខេបព្រឹត្តិការណ៍ដែលបានជ្រើសរើស"
           >
-            <div className="flex items-center gap-[15px] rounded-[10px] border border-line bg-white px-5 py-[18px] [&>div>span]:text-[14px] [&>div>span]:text-muted [&_strong]:flex [&_strong]:items-baseline [&_strong]:gap-2.5 [&_strong]:text-[25px] [&_strong]:font-semibold [&_strong]:leading-[1.6] [&_small]:text-[14px] [&_small]:font-normal [&_small]:text-[#88959c] min-[1600px]:p-[23px] max-[1250px]:p-[15px] max-[1250px]:[&_strong]:text-[23px] max-[1250px]:[&>div>span]:text-[14px] max-[800px]:gap-2.5 max-[800px]:[&_small]:hidden max-[800px]:[&_strong]:text-[22px] max-[560px]:block max-[560px]:p-3 max-[560px]:[&>div>span]:block max-[560px]:[&>div>span]:min-h-[34px] max-[560px]:[&>div>span]:text-[14px] max-[560px]:[&>div>span]:leading-[1.9] max-[560px]:[&_strong]:mt-0.5">
-              <span className="shrink-0 text-brand [&>svg]:h-6 [&>svg]:w-6 max-[560px]:mb-[9px]">
+            <div className="flex items-center gap-[15px] rounded-[10px] border border-brand bg-brand px-5 py-[18px] text-white [&>div>span]:text-[14px] [&>div>span]:!text-white [&_strong]:flex [&_strong]:items-baseline [&_strong]:gap-2.5 [&_strong]:text-[25px] [&_strong]:font-semibold [&_strong]:leading-[1.6] [&_strong]:!text-white [&_small]:text-[14px] [&_small]:font-normal [&_small]:!text-white/80 min-[1600px]:p-[23px] max-[1250px]:p-[15px] max-[1250px]:[&_strong]:text-[23px] max-[1250px]:[&>div>span]:text-[14px] max-[800px]:gap-2.5 max-[800px]:[&_strong_small]:hidden max-[800px]:[&_strong]:text-[22px] max-[560px]:block max-[560px]:p-3 max-[560px]:[&>div>span]:block max-[560px]:[&>div>span]:min-h-[34px] max-[560px]:[&>div>span]:text-[14px] max-[560px]:[&>div>span]:leading-[1.9] max-[560px]:[&_strong]:mt-0.5">
+              <span className="shrink-0 !text-white [&>svg]:h-6 [&>svg]:w-6 max-[560px]:mb-[9px]">
                 <Icon name="calendar" />
               </span>
               <div>
-                <span>ព្រឹត្តិការណ៍សរុប{demo ? " · សាកល្បង" : ""}</span>
+                <span>ព័ត៌មានសរុបមាន{demo ? " · សាកល្បង" : ""}</span>
                 <strong>
                   {count}
                   <small>ព្រឹត្តិការណ៍</small>
                 </strong>
+                <small className="block text-[13px] !text-white/80">
+                  {range.from === initialDate && range.to === initialDate
+                    ? "សម្រាប់ថ្ងៃនេះ"
+                    : range.from === range.to
+                      ? dateLabel(range.from)
+                      : `${dateLabel(range.from)} – ${dateLabel(range.to)}`}
+                </small>
               </div>
             </div>
-            <div className="flex items-center gap-[15px] rounded-[10px] border border-line bg-white px-5 py-[18px] [&>div>span]:text-[14px] [&>div>span]:text-muted [&_strong]:flex [&_strong]:items-baseline [&_strong]:gap-2.5 [&_strong]:text-[25px] [&_strong]:font-semibold [&_strong]:leading-[1.6] [&_small]:text-[14px] [&_small]:font-normal [&_small]:text-[#88959c] min-[1600px]:p-[23px] max-[1250px]:p-[15px] max-[1250px]:[&_strong]:text-[23px] max-[1250px]:[&>div>span]:text-[14px] max-[800px]:gap-2.5 max-[800px]:[&_small]:hidden max-[800px]:[&_strong]:text-[22px] max-[560px]:block max-[560px]:p-3 max-[560px]:[&>div>span]:block max-[560px]:[&>div>span]:min-h-[34px] max-[560px]:[&>div>span]:text-[14px] max-[560px]:[&>div>span]:leading-[1.9] max-[560px]:[&_strong]:mt-0.5">
-              <span className="shrink-0 text-brand [&>svg]:h-6 [&>svg]:w-6 max-[560px]:mb-[9px]">
+            <div className="flex items-center gap-[15px] rounded-[10px] border border-[#c0392b] bg-[#c0392b] px-5 py-[18px] text-white shadow-[0_8px_20px_rgba(192,57,43,.2)] [&>div>span]:text-[14px] [&>div>span]:text-white [&_strong]:flex [&_strong]:items-baseline [&_strong]:gap-2.5 [&_strong]:text-[25px] [&_strong]:font-semibold [&_strong]:leading-[1.6] [&_strong]:text-white [&_small]:text-[14px] [&_small]:font-normal [&_small]:text-red-100 min-[1600px]:p-[23px] max-[1250px]:p-[15px] max-[1250px]:[&_strong]:text-[23px] max-[1250px]:[&>div>span]:text-[14px] max-[800px]:gap-2.5 max-[800px]:[&_strong_small]:hidden max-[800px]:[&_strong]:text-[22px] max-[560px]:block max-[560px]:p-3 max-[560px]:[&>div>span]:block max-[560px]:[&>div>span]:min-h-[34px] max-[560px]:[&>div>span]:text-[14px] max-[560px]:[&>div>span]:leading-[1.9] max-[560px]:[&_strong]:mt-0.5">
+              <span className="shrink-0 text-white [&>svg]:h-6 [&>svg]:w-6 max-[560px]:mb-[9px]">
                 <Icon name="chart" />
               </span>
               <div>
-                <span>ព្រឹត្តិការណ៍ឥទ្ធិពលខ្លាំង</span>
+                <span>ព័ត៌មានសំខាន់ៗមាន</span>
                 <strong>
                   {data && !invalidRange
                     ? events.filter((event) => event.impact === "high").length
                     : "—"}
                   <small>ត្រូវតាមដាន</small>
                 </strong>
+                <small className="block text-[13px] text-red-100">
+                  {range.from === initialDate && range.to === initialDate
+                    ? "សម្រាប់ថ្ងៃនេះ"
+                    : range.from === range.to
+                      ? dateLabel(range.from)
+                      : `${dateLabel(range.from)} – ${dateLabel(range.to)}`}
+                </small>
               </div>
             </div>
-            <div className="flex items-center gap-[15px] rounded-[10px] border border-line bg-white px-5 py-[18px] [&>div>span]:text-[14px] [&>div>span]:text-muted [&_strong]:flex [&_strong]:items-baseline [&_strong]:gap-2.5 [&_strong]:text-[25px] [&_strong]:font-semibold [&_strong]:leading-[1.6] [&_small]:text-[14px] [&_small]:font-normal [&_small]:text-[#88959c] min-[1600px]:p-[23px] max-[1250px]:p-[15px] max-[1250px]:[&_strong]:text-[23px] max-[1250px]:[&>div>span]:text-[14px] max-[800px]:gap-2.5 max-[800px]:[&_small]:hidden max-[800px]:[&_strong]:text-[22px] max-[560px]:block max-[560px]:p-3 max-[560px]:[&>div>span]:block max-[560px]:[&>div>span]:min-h-[34px] max-[560px]:[&>div>span]:text-[14px] max-[560px]:[&>div>span]:leading-[1.9] max-[560px]:[&_strong]:mt-0.5">
-              <span className="shrink-0 text-brand [&>svg]:h-6 [&>svg]:w-6 max-[560px]:mb-[9px]">
+            <div className="flex items-center gap-[15px] rounded-[10px] border border-brand bg-brand px-5 py-[18px] text-white [&>div>span]:text-[14px] [&>div>span]:!text-white [&_strong]:flex [&_strong]:items-baseline [&_strong]:gap-2.5 [&_strong]:text-[25px] [&_strong]:font-semibold [&_strong]:leading-[1.6] [&_strong]:!text-white [&_small]:text-[14px] [&_small]:font-normal [&_small]:!text-white/80 min-[1600px]:p-[23px] max-[1250px]:p-[15px] max-[1250px]:[&_strong]:text-[23px] max-[1250px]:[&>div>span]:text-[14px] max-[800px]:gap-2.5 max-[800px]:[&_strong_small]:hidden max-[800px]:[&_strong]:text-[22px] max-[560px]:block max-[560px]:p-3 max-[560px]:[&>div>span]:block max-[560px]:[&>div>span]:min-h-[34px] max-[560px]:[&>div>span]:text-[14px] max-[560px]:[&>div>span]:leading-[1.9] max-[560px]:[&_strong]:mt-0.5">
+              <span className="shrink-0 !text-white [&>svg]:h-6 [&>svg]:w-6 max-[560px]:mb-[9px]">
                 <Icon name="globe" />
               </span>
               <div>
@@ -517,7 +544,7 @@ export default function Calendar({ initialDate }: { initialDate: string }) {
                       aria-pressed={
                         range.from === item.from && range.to === item.to
                       }
-                      className={`min-h-[30px] rounded px-3 py-[5px] text-[14px] whitespace-nowrap max-[560px]:min-h-[34px] max-[560px]:flex-1 ${range.from === item.from && range.to === item.to ? "bg-white font-semibold text-brand shadow-[0_1px_4px_#19382d14]" : "text-[#7c8a93]"}`}
+                      className={`min-h-[30px] rounded px-3 py-[5px] text-[14px] whitespace-nowrap max-[560px]:min-h-[34px] max-[560px]:flex-1 ${range.from === item.from && range.to === item.to ? "bg-brand font-semibold text-white shadow-[0_1px_4px_#19382d14]" : "text-[#7c8a93]"}`}
                       onClick={() => {
                         const current = calendarPresets(cambodiaDate()).find(
                           (preset) => preset.id === item.id,
@@ -623,7 +650,7 @@ export default function Calendar({ initialDate }: { initialDate: string }) {
                 </label>
                 <button
                   data-testid="text-button"
-                  className="flex min-h-8 items-center gap-1 text-[14px] text-[#85959d] max-[560px]:text-[14px]"
+                  className="flex min-h-8 items-center gap-1.5 rounded-md bg-brand px-3 text-[14px] font-medium text-white hover:bg-brand/90 max-[560px]:min-h-9 max-[560px]:text-[14px] [&_svg]:text-white"
                   onClick={resetFilters}
                 >
                   <Icon name="filter" size={14} />
@@ -1249,3 +1276,4 @@ export default function Calendar({ initialDate }: { initialDate: string }) {
     </div>
   );
 }
+

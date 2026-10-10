@@ -17,7 +17,7 @@ export default function CalendarHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-white/95 shadow-[0_4px_18px_rgba(23,42,57,.035)] backdrop-blur">
-      <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-x-8 gap-y-3 px-8 py-4 max-[800px]:px-5 max-[560px]:gap-y-2.5 max-[560px]:px-4 max-[560px]:py-3">
+      <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-x-8 gap-y-3 px-8 py-4 max-[999px]:flex-col max-[999px]:items-stretch max-[800px]:px-5 max-[560px]:gap-y-2.5 max-[560px]:px-4 max-[560px]:py-3">
         <a
           href="/"
           className="flex items-center gap-2.5 text-[19px] font-bold tracking-[-.6px] text-[#183b35]"
