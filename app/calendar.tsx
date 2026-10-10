@@ -17,7 +17,7 @@ const impactLabels = { high: "??????", medium: "?????", low: "?????" };
 import CountryFlag from "@/components/CountryFlag";
 
 const warnings: Record<string, string> = {
-  AWAITING_SYNC: "កំពុងរង់ចាំការធ្វើសមកាលកម្មដំបូងពីប្រភពទិន្នន័យ។",
+  AWAITING_SYNC: "Waiting for the first data sync.",
   PROVIDER_ERROR:
     "មិនអាចធ្វើបច្ចុប្បន្នភាពពីប្រភពបានទេ។ ទិន្នន័យដែលបានរក្សាទុកអាចហួសសម័យ។",
   OUTSIDE_COVERAGE:
@@ -114,7 +114,14 @@ export default function Calendar({ initialDate }: { initialDate: string }) {
         `/api/calendar?${new URLSearchParams(range)}`,
         { cache: "no-store", signal: controller.signal },
       );
-      if (!response.ok) throw new Error("CALENDAR_UNAVAILABLE");
+      if (!response.ok) {
+        const result = (await response.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        if (result?.error === "DATABASE_UNAVAILABLE")
+          throw new Error("DATABASE_UNAVAILABLE");
+        throw new Error("CALENDAR_UNAVAILABLE");
+      }
       const result = (await response.json()) as CalendarResponse;
       if (!Array.isArray(result.events) || !result.meta)
         throw new Error("INVALID_RESPONSE");
@@ -208,7 +215,9 @@ export default function Calendar({ initialDate }: { initialDate: string }) {
       }
       if (active.current === controller)
         setError(
-          "មិនអាចទាញយកប្រតិទិនបានទេ។ សូមពិនិត្យការតភ្ជាប់ ហើយព្យាយាមម្តងទៀត។",
+          error instanceof Error && error.message === "DATABASE_UNAVAILABLE"
+            ? "The database is unavailable. Please try again shortly."
+            : "Unable to load calendar data. Please try again.",
         );
     } finally {
       window.clearTimeout(timeout);

@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
       apifyConfigured: Boolean(process.env.APIFY_API_TOKEN),
     });
     return NextResponse.json(
-      { error: "CALENDAR_UNAVAILABLE" },
+      { error: "DATABASE_UNAVAILABLE" },
       { status: 503, headers },
     );
   }

@@ -53,7 +53,11 @@ export class ApifyCalendarProvider {
           },
         }),
       });
-    } catch {
+    } catch (error) {
+      console.error("[apify-calendar] request failed", {
+        name: error instanceof Error ? error.name : "UnknownError",
+        message: error instanceof Error ? error.message : String(error),
+      });
       throw new ProviderError("PROVIDER_UNAVAILABLE");
     }
 

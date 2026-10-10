@@ -151,6 +151,11 @@ export async function syncCalendar() {
     };
   } catch (error) {
     const code = error instanceof ProviderError ? error.code : "SYNC_FAILED";
+    console.error("[calendar-sync] initial/provider sync failed", {
+      code,
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : String(error),
+    });
     const backoff =
       error instanceof ProviderError ? error.retryAfterSeconds : 300;
     await CalendarSync.updateOne(
