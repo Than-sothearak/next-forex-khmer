@@ -5,6 +5,7 @@ import CalendarInsight from "@/models/CalendarInsight";
 import type { Impact } from "@/lib/calendar/types";
 
 export type CalendarInsightResult = {
+  model: string | null;
   eventNameKm: string;
   overviewKm: string;
   valuesExplanationKm: string;
@@ -63,6 +64,7 @@ export async function explainCalendarEvent(event: {
   ) {
     return {
       insight: {
+        model: cached.model || null,
         eventNameKm: cached.eventNameKm,
         overviewKm: cached.overviewKm,
         valuesExplanationKm: cached.valuesExplanationKm,
@@ -249,6 +251,7 @@ export async function explainCalendarEvent(event: {
     )
       throw new Error("INVALID_AI_RESPONSE");
     const insight = result as CalendarInsightResult;
+    insight.model = model;
     await CalendarInsight.updateOne(
       { key, lockToken: token },
       {
