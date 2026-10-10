@@ -12,8 +12,8 @@ export async function register() {
     }
 
     if (process.env.VERCEL) {
-      console.warn("[calendar-auto-sync] not started", {
-        reason: "Vercel does not keep background timers running; configure an external scheduler to call /api/calendar/sync.",
+      console.info("[calendar-auto-sync] in-process timer disabled on Vercel", {
+        reason: "Vercel Cron in vercel.json calls /api/calendar/sync on the configured schedule.",
       });
       return;
     }

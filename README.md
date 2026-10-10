@@ -42,7 +42,7 @@ Run the app on a host supporting Node.js API routes and at least a 240-second re
 
 For local development or a continuously running Node server, set `CALENDAR_AUTO_SYNC=true` and `CALENDAR_SYNC_INTERVAL_MINUTES=5`, then restart `npm run dev` or `npm start`. After each successful sync, the server schedules the next request at the earlier of the background interval or 15 seconds after a known, non-tentative event release with a missing Actual. Simultaneous releases share a request; pending results continue to be checked at the background interval. Slow requests and translation can delay this timing. Release requests can increase Actor costs and cannot guarantee that the upstream source has published Actual values. The database lease prevents concurrent requests and preserves provider retry delays across processes. Existing cooldowns remain until the next successful sync. The browser automatically reads updated data every 60 seconds. No manual button or open browser is required for provider fetching while the server is running. Successful runs are logged as `[calendar-auto-sync] completed`, and `[calendar-sync] next request scheduled` shows the next request time and reason. External cron jobs only execute at their configured frequency. This uses the Next.js instrumentation startup hook: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation.
 
-Background timers stop when the server stops or sleeps. For serverless hosting, use the external scheduler below; the built-in timer is disabled on Vercel. Changing the interval does not override an existing persisted retry/cooldown deadline.
+Background timers stop when the server stops or sleeps. For serverless hosting, use a scheduler; the built-in timer is disabled on Vercel. This repository includes an hourly Vercel Cron in `vercel.json`, which calls the protected sync endpoint on production deployments. Add a random `CRON_SECRET` (at least 32 characters) to the Vercel project's Production environment variables; Vercel sends it as the Bearer authorization token. Keep `MONGODB_URI`, `APIFY_CALENDAR_SOURCE`, and `APIFY_API_TOKEN` configured there as well, then redeploy. The first automatic sync will run at the next hourly schedule; to sync immediately, send the POST request below from a trusted shell. Changing the interval does not override an existing persisted retry/cooldown deadline.
 
 After configuration, trigger the initial sync from a trusted shell (set the secret in that shell; `.env.local` is read by Next.js, not curl):
 
@@ -51,7 +51,7 @@ curl --fail-with-body -X POST http://localhost:3000/api/calendar/sync \
   -H "Authorization: Bearer $CALENDAR_SYNC_SECRET"
 ```
 
-Configure your hosting scheduler or a cron job to POST to `/api/calendar/sync`. For example, check every minute; the server MongoDB-backed interval guard limits provider fetches to approximately once per hour by default:
+For hosting without built-in scheduled jobs, configure an external scheduler to POST to `/api/calendar/sync`. For example, check every minute; the server MongoDB-backed interval guard limits provider fetches to approximately once per hour by default:
 
 ```cron
 * * * * * /usr/bin/curl --fail --silent --show-error --max-time 240 -X POST https://YOUR_DOMAIN/api/calendar/sync -H "Authorization: Bearer $CALENDAR_SYNC_SECRET"

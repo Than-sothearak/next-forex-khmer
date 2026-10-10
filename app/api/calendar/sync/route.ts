@@ -5,8 +5,11 @@ import { ProviderError } from "@/lib/calendar/providers/provider-utils";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 240;
-export async function POST(request: NextRequest) {
-  const expected = process.env.CALENDAR_SYNC_SECRET;
+async function handleSync(request: NextRequest) {
+  const expected =
+    request.method === "GET"
+      ? process.env.CRON_SECRET || process.env.CALENDAR_SYNC_SECRET
+      : process.env.CALENDAR_SYNC_SECRET;
   const supplied =
     request.headers.get("authorization")?.replace(/^Bearer /, "") || "";
   if (
@@ -17,7 +20,7 @@ export async function POST(request: NextRequest) {
   ) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
-  console.info("[calendar-sync] request accepted");
+  console.info("[calendar-sync] request accepted", { method: request.method });
   try {
     const result = await syncCalendar();
     console.info("[calendar-sync] request finished", {
@@ -47,4 +50,13 @@ export async function POST(request: NextRequest) {
       },
     );
   }
+}
+
+// Vercel Cron invokes route handlers with GET and sends CRON_SECRET as a Bearer token.
+export async function GET(request: NextRequest) {
+  return handleSync(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handleSync(request);
 }
